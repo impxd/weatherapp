@@ -1,50 +1,164 @@
-import { Component } from '@angular/core'
+import { Component, ViewEncapsulation, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { RouterOutlet } from '@angular/router'
+import { HttpClient } from '@angular/common/http'
+import { ActivatedRoute, Router } from '@angular/router'
+import {
+  Subject,
+  distinctUntilChanged,
+  filter,
+  map,
+  merge,
+  of,
+  repeat,
+  share,
+  startWith,
+  takeUntil,
+  tap,
+} from 'rxjs'
+import { toLatLng, viewModel } from 'src/app/shared/utils'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  encapsulation: ViewEncapsulation.None,
+  imports: [CommonModule],
   template: `
-    <!--The content below is only a placeholder and can be replaced.-->
-    <div style="text-align:center" class="content">
-      <h1>Welcome to {{ title }}!</h1>
-      <span style="display: block">{{ title }} app is running!</span>
-      <img
-        width="300"
-        alt="Angular Logo"
-        src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgMjUwIj4KICAgIDxwYXRoIGZpbGw9IiNERDAwMzEiIGQ9Ik0xMjUgMzBMMzEuOSA2My4ybDE0LjIgMTIzLjFMMTI1IDIzMGw3OC45LTQzLjcgMTQuMi0xMjMuMXoiIC8+CiAgICA8cGF0aCBmaWxsPSIjQzMwMDJGIiBkPSJNMTI1IDMwdjIyLjItLjFWMjMwbDc4LjktNDMuNyAxNC4yLTEyMy4xTDEyNSAzMHoiIC8+CiAgICA8cGF0aCAgZmlsbD0iI0ZGRkZGRiIgZD0iTTEyNSA1Mi4xTDY2LjggMTgyLjZoMjEuN2wxMS43LTI5LjJoNDkuNGwxMS43IDI5LjJIMTgzTDEyNSA1Mi4xem0xNyA4My4zaC0zNGwxNy00MC45IDE3IDQwLjl6IiAvPgogIDwvc3ZnPg=="
-      />
-    </div>
-    <h2>Here are some links to help you start:</h2>
-    <ul>
-      <li>
-        <h2>
-          <a target="_blank" rel="noopener" href="https://angular.io/tutorial"
-            >Tour of Heroes</a
-          >
-        </h2>
-      </li>
-      <li>
-        <h2>
-          <a target="_blank" rel="noopener" href="https://angular.io/cli"
-            >CLI Documentation</a
-          >
-        </h2>
-      </li>
-      <li>
-        <h2>
-          <a target="_blank" rel="noopener" href="https://blog.angular.io/"
-            >Angular blog</a
-          >
-        </h2>
-      </li>
-    </ul>
-    <router-outlet></router-outlet>
+    <ng-container *ngIf="vm$ | async as vm">
+      <label>State Capital</label>
+      <select
+        [disabled]="vm.capitals == null"
+        (change)="
+          dispatch({
+            type: 'setCapital',
+            value: asAny($event.target).value
+          })
+        "
+      >
+        <option
+          value=""
+          disabled
+          [attr.selected]="vm.latLng == null ? '' : null"
+        >
+          {{ vm.capitals == null ? 'Loading...' : 'Select your option' }}
+        </option>
+        <option
+          *ngFor="let capital of vm.capitals"
+          [value]="capital.latLng"
+          [attr.selected]="capital.latLng === vm.latLng ? '' : null"
+        >
+          {{ capital.state }} - {{ capital.city }}
+        </option>
+      </select>
+      <button
+        type="button"
+        (click)="
+          dispatch({
+            type: 'setCapital',
+            value: null
+          })
+        "
+      >
+        Clear
+      </button>
+    </ng-container>
   `,
-  styles: [],
+  styles: [
+    `
+      app-root > {
+        label {
+          display: block;
+        }
+
+        select {
+          display: inline-block;
+        }
+      }
+    `,
+  ],
 })
 export class AppComponent {
-  title = 'weather-app'
+  readonly http = inject(HttpClient)
+  readonly router = inject(Router)
+  readonly route = inject(ActivatedRoute)
+
+  readonly actions = new Subject<Action>()
+  readonly vm$
+
+  constructor() {
+    const capitals$ = this.fetchStateCapitals().pipe(startWith(null), share())
+
+    const latLng$ = this.route.queryParamMap.pipe(
+      map((queryParams) => queryParams.get('latLng')),
+      distinctUntilChanged()
+    )
+
+    const effects$ = merge(
+      this.actions.pipe(
+        filter((a): a is SetCapitalAction => a.type === 'setCapital'),
+        tap((a) =>
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { latLng: a.value },
+          })
+        )
+      )
+    ).pipe(startWith(null))
+
+    this.vm$ = viewModel({
+      capitals$,
+      latLng$,
+      effects$,
+    })
+  }
+
+  // Methods
+
+  dispatch(a: Action) {
+    this.actions.next(a)
+  }
+
+  // API calls
+
+  fetchStateCapitals() {
+    return this.http
+      .get<FetchStateCapitals>(
+        'https://raw.githubusercontent.com/vega/vega/main/docs/data/us-state-capitals.json'
+      )
+      .pipe(
+        map((capitals) =>
+          capitals.map((capital) => ({
+            ...capital,
+            latLng: toLatLng(capital),
+          }))
+        )
+      )
+  }
+
+  // Utils
+
+  asAny<T>(val: T) {
+    return val as any
+  }
 }
+
+// UI Interaction
+
+type LatLng = string
+
+export type SetCapitalAction = {
+  type: 'setCapital'
+  value: LatLng | null
+}
+
+export type Action = SetCapitalAction
+
+// Types
+
+export interface StateCapital {
+  lon: number
+  lat: number
+  state: string
+  city: string
+}
+
+export type FetchStateCapitals = StateCapital[]
