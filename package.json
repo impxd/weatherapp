@@ -4,8 +4,10 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:hmr": "ng serve --hmr",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "vitest"
   },
   "private": true,
   "dependencies": {
@@ -25,6 +27,7 @@
     "@angular-devkit/build-angular": "^16.0.0",
     "@angular/cli": "~16.0.0",
     "@angular/compiler-cli": "^16.0.0",
+    "@angular/language-service": "^16.0.1",
     "typescript": "~5.0.2"
   }
 }

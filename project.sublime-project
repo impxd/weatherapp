@@ -1,0 +1,27 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+      "file_exclude_patterns": 
+      [
+        "*.lock",
+        "package-lock.json",
+        "artisan",
+        "server.php",
+        "CACHEDIR.TAG",
+        "tsconfig.tsbuildinfo"
+      ],
+      "folder_exclude_patterns":
+      [
+        "public",
+        "dist",
+        "cache",
+        "storage",
+        "vendor",
+        "node_modules",
+        "bootstrap"
+      ]
+		}
+	]
+}
