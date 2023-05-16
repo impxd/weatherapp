@@ -6,7 +6,7 @@ http://weatherapp.iamm.mp/
 
 ## Repository
 
-https://gitlab.com/impxd/weatherapp
+https://github.com/impxd/weatherapp
 
 ## Main Technologies
 
