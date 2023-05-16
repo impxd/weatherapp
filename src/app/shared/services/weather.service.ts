@@ -24,7 +24,21 @@ export class WeatherService {
             properties: {
               ...forecast.properties,
               periods: forecast.properties.periods
-                .filter((period) => period.isDaytime)
+                .reduce((acc, curr, index, array) => {
+                  if (curr.isDaytime === true) return acc.concat(curr)
+                  else if (acc.length === 0 || index === array.length - 1) {
+                    return acc.concat({
+                      ...curr,
+                      temperatureMin: curr.temperature,
+                      temperature: undefined,
+                    })
+                  }
+
+                  acc[acc.length - 1].temperatureMin = curr.temperature
+
+                  return acc
+                }, [] as Period[])
+                .slice(0, 7)
                 .map((period) => ({
                   ...period,
                   shortName: shortName(period.name),
@@ -180,7 +194,8 @@ export interface Period {
   startTime: Date
   endTime: Date
   isDaytime: boolean
-  temperature: number
+  temperature?: number
+  temperatureMin?: number
   temperatureUnit: string
   temperatureTrend: null | string
   probabilityOfPrecipitation: Elevation

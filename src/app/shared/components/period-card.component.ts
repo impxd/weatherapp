@@ -15,7 +15,14 @@ import { type Period } from 'src/app/shared/services/weather.service'
   template: `
     <p>{{ period.shortName }}</p>
     <img [src]="period.icon" [alt]="period.name + ' weather image'" />
-    <h5>{{ period.temperature }}º</h5>
+    <h5>
+      <span *ngIf="period.temperature != null" class="max">
+        {{ period.temperature }}º
+      </span>
+      <span *ngIf="period.temperatureMin != null" class="min">
+        {{ period.temperatureMin }}º
+      </span>
+    </h5>
   `,
   styles: [
     `
@@ -37,9 +44,17 @@ import { type Period } from 'src/app/shared/services/weather.service'
           }
 
           h5 {
-            margin: 8px 0 0;
+            margin: 10px 0 0;
             display: block;
             font-weight: 400;
+
+            .max {
+              margin-right: 6px;
+            }
+
+            .min {
+              opacity: 0.6;
+            }
           }
         }
       }

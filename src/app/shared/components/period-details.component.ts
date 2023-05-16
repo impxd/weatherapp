@@ -9,7 +9,7 @@ import { type Period } from 'src/app/shared/services/weather.service'
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="card">
-      <h1>{{ period?.temperature }}º</h1>
+      <h1>{{ period?.temperature ?? period?.temperatureMin }}º</h1>
       <ul>
         <li>
           Precipitation:
@@ -26,7 +26,10 @@ import { type Period } from 'src/app/shared/services/weather.service'
 
     <div class="info">
       <h4>{{ period?.name }}</h4>
-      <p>{{ period?.shortForecast }}</p>
+      <p>
+        {{ period?.shortForecast }}
+        <i [attr.data-tooltip]="period?.detailedForecast"> ⓘ </i>
+      </p>
     </div>
   `,
   styles: [
@@ -63,11 +66,21 @@ import { type Period } from 'src/app/shared/services/weather.service'
 
             h4 {
               margin: 0;
+              display: inline-block;
             }
 
             p {
               margin: 0;
               line-height: initial;
+
+              i {
+                margin-left: 4px;
+                text-align: left;
+                font-size: 15px;
+                font-style: normal;
+                font-weight: bold;
+                color: #bebebe;
+              }
             }
           }
         }
