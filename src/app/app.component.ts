@@ -1,14 +1,16 @@
 import { Component, ViewEncapsulation, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { ActivatedRoute, Router } from '@angular/router'
 import {
   Subject,
+  catchError,
   distinctUntilChanged,
   filter,
   map,
   merge,
   of,
+  partition,
   repeat,
   share,
   startWith,
@@ -68,6 +70,13 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
         Clear
       </button>
 
+      <span
+        [style.visibility]="vm.error ? 'visible' : 'hidden'"
+        class="errormessage"
+      >
+        {{ vm.error ?? '-' }}
+      </span>
+
       <hr />
       <div
         class="progress-bar"
@@ -78,7 +87,11 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
         <div></div>
       </div>
 
-      <section *ngIf="vm.periods != null" id="weather">
+      <section
+        *ngIf="vm.periods != null"
+        id="weather"
+        [class.error]="vm.error != null"
+      >
         <app-period-details [period]="vm.period" />
 
         <ul class="periods">
@@ -114,12 +127,28 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
           margin-top: -9px;
         }
 
+        .errormessage {
+          float: right;
+          display: inline-block;
+          margin-top: 24px;
+          margin-bottom: 0;
+          visibility: hidden;
+          white-space: nowrap;
+          font-size: 13px;
+          color: var(--error);
+        }
+
         hr {
           margin-top: 1rem;
         }
 
         #weather {
           margin-top: 1rem;
+
+          &.error {
+            filter: blur(1px);
+            opacity: 0.9;
+          }
 
           .periods {
             padding: 0;
@@ -165,15 +194,21 @@ export class AppComponent {
       distinctUntilChanged()
     )
 
-    const periods$ = latLng$.pipe(
+    const periodsRequest$ = latLng$.pipe(
       switchMap((latLng) =>
         latLng == null
           ? of(null)
-          : this.weather
-              .fetchForecast(latLng)
-              .pipe(map((forecast) => forecast.properties.periods))
+          : this.weather.fetchForecast(latLng).pipe(
+              map((forecast) => forecast.properties.periods),
+              catchError((error: HttpErrorResponse) => of(error))
+            )
       ),
       share()
+    )
+
+    const [periodsError$, periods$] = partition(
+      periodsRequest$,
+      (value): value is HttpErrorResponse => value instanceof HttpErrorResponse
     )
 
     const periodsLoading$ = merge(
@@ -182,7 +217,7 @@ export class AppComponent {
         filter(Boolean),
         map(() => true)
       ),
-      periods$.pipe(
+      periodsRequest$.pipe(
         filter(Boolean),
         map(() => false)
       )
@@ -199,6 +234,12 @@ export class AppComponent {
           : of(null)
       }),
       startWith(null)
+    )
+
+    const error$ = merge(
+      of(null),
+      latLng$.pipe(map(() => null)),
+      periodsError$.pipe(map(() => 'Network request failed!'))
     )
 
     const effects$ = merge(
@@ -219,6 +260,7 @@ export class AppComponent {
       periods$,
       periodsLoading$,
       period$,
+      error$,
       effects$,
     })
   }
