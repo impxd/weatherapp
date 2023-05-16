@@ -47,11 +47,13 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
             value: asAny($event.target).value
           })
         "
+        data-testid="capitals-select"
       >
         <option
           value=""
           disabled
           [attr.selected]="vm.latLng == null ? '' : null"
+          data-testid="capitals-select-placeholder"
         >
           {{ vm.capitals == null ? 'Loading...' : 'Select your option' }}
         </option>
@@ -65,12 +67,14 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
       </select>
       <button
         type="button"
+        [style.visibility]="vm.latLng != null ? 'visible' : 'hidden'"
         (click)="
           dispatch({
             type: 'setCapital',
             value: null
           })
         "
+        data-testid="capitals-clear-btn"
       >
         Clear
       </button>
@@ -94,8 +98,9 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
 
       <section
         *ngIf="vm.periods != null"
-        id="weather"
+        id="forecast"
         [class.error]="vm.error != null"
+        data-testid="forecast"
       >
         <app-period-details [period]="vm.period" />
 
@@ -147,7 +152,7 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
           margin-top: 1rem;
         }
 
-        #weather {
+        #forecast {
           margin-top: 1rem;
 
           &.error {
