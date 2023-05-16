@@ -2,7 +2,8 @@
 
 ## Production URL
 
-http://weatherapp.iamm.mp/
+https://weatherapp.iamm.mp/
+https://weatherapp-impxd.vercel.app/
 
 ## Repository
 
