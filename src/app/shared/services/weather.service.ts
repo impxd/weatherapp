@@ -10,7 +10,7 @@ export class WeatherService {
   readonly http = inject(HttpClient)
 
   static readonly API_WEATHER = 'https://api.weather.gov/'
-  static readonly API_OPENWEATHER = 'http://api.openweathermap.org/'
+  static readonly API_OPENWEATHER = 'https://api.openweathermap.org/'
   static readonly API_OPENWEATHER_KEY = '405e5458d110b924725271f5c7547f22'
   static readonly AQI: Record<number, string> = {
     1: 'Good',
