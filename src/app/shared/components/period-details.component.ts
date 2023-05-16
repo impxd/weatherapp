@@ -11,6 +11,7 @@ import { type Period } from 'src/app/shared/services/weather.service'
     <div class="card">
       <h1>{{ period?.temperature ?? period?.temperatureMin }}º</h1>
       <ul>
+        <li>Air quality: {{ period?.aqiTxt || '- -' }}</li>
         <li>
           Precipitation:
           {{
@@ -24,11 +25,12 @@ import { type Period } from 'src/app/shared/services/weather.service'
       </ul>
     </div>
 
-    <div class="info">
-      <h4>{{ period?.name }}</h4>
+    <div class="info" [attr.data-tooltip]="period?.detailedForecast">
+      <h3>
+        {{ period?.name }}
+      </h3>
       <p>
         {{ period?.shortForecast }}
-        <i [attr.data-tooltip]="period?.detailedForecast"> ⓘ </i>
       </p>
     </div>
   `,
@@ -58,13 +60,14 @@ import { type Period } from 'src/app/shared/services/weather.service'
               list-style: none;
               font-size: 14px;
               font-weight: 300;
+              white-space: nowrap;
             }
           }
 
           .info {
             text-align: right;
 
-            h4 {
+            h3 {
               margin: 0;
               display: inline-block;
             }
@@ -72,15 +75,6 @@ import { type Period } from 'src/app/shared/services/weather.service'
             p {
               margin: 0;
               line-height: initial;
-
-              i {
-                margin-left: 4px;
-                text-align: left;
-                font-size: 15px;
-                font-style: normal;
-                font-weight: bold;
-                color: #bebebe;
-              }
             }
           }
         }

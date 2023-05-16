@@ -1,13 +1,24 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { map, switchMap } from 'rxjs'
+import { forkJoin, map, switchMap } from 'rxjs'
+import { fromLatLng } from 'src/app/shared/utils'
 
 @Injectable({
   providedIn: 'root',
 })
 export class WeatherService {
   readonly http = inject(HttpClient)
+
   static readonly API_WEATHER = 'https://api.weather.gov/'
+  static readonly API_OPENWEATHER = 'http://api.openweathermap.org/'
+  static readonly API_OPENWEATHER_KEY = '405e5458d110b924725271f5c7547f22'
+  static readonly AQI: Record<number, string> = {
+    1: 'Good',
+    2: 'Fair',
+    3: 'Moderate',
+    4: 'Poor',
+    5: 'Very Poor',
+  }
 
   fetchPoints(latLng: LatLng) {
     return this.http.get<FetchPoints>(
@@ -15,9 +26,21 @@ export class WeatherService {
     )
   }
 
+  fetchAirPollution(latLng: LatLng) {
+    const [lat, lng] = fromLatLng(latLng)
+
+    return this.http.get<FetchAirPollution>(
+      WeatherService.API_OPENWEATHER +
+        `data/2.5/air_pollution/forecast?lat=${lat}&lon=${lng}&appid=${WeatherService.API_OPENWEATHER_KEY}`
+    )
+  }
+
   fetchForecast(latLng: LatLng) {
-    return this.fetchPoints(latLng).pipe(
-      switchMap((pointsData) =>
+    return forkJoin([
+      this.fetchAirPollution(latLng),
+      this.fetchPoints(latLng),
+    ]).pipe(
+      switchMap(([airPollution, pointsData]) =>
         this.http.get<FetchForecast>(pointsData.properties.forecast).pipe(
           map((forecast) => ({
             ...forecast,
@@ -39,10 +62,22 @@ export class WeatherService {
                   return acc
                 }, [] as Period[])
                 .slice(0, 7)
-                .map((period) => ({
-                  ...period,
-                  shortName: shortName(period.name),
-                })),
+                .map((period) => {
+                  const aqi = airPollution.list.find((item) =>
+                    period.startTime.startsWith(
+                      new Date(item.dt * 1000).toISOString().slice(0, 13)
+                    )
+                  )
+
+                  return {
+                    ...period,
+                    shortName: shortName(period.name),
+                    aqi: aqi?.main.aqi,
+                    aqiTxt: aqi?.main.aqi
+                      ? WeatherService.AQI[aqi?.main.aqi]
+                      : undefined,
+                  }
+                }),
             },
           }))
         )
@@ -172,11 +207,11 @@ export interface Geometry {
 }
 
 export interface Properties {
-  updated: Date
+  updated: string
   units: string
   forecastGenerator: string
-  generatedAt: Date
-  updateTime: Date
+  generatedAt: string
+  updateTime: string
   validTimes: string
   elevation: Elevation
   periods: Period[]
@@ -191,8 +226,8 @@ export interface Period {
   number: number
   name: string
   shortName: string
-  startTime: Date
-  endTime: Date
+  startTime: string
+  endTime: string
   isDaytime: boolean
   temperature?: number
   temperatureMin?: number
@@ -206,4 +241,30 @@ export interface Period {
   icon: string
   shortForecast: string
   detailedForecast: string
+  // Aggregations
+  aqi?: number
+  aqiTxt?: string
+}
+
+// Types for fetchAirPollution
+// auto-generated code from https://app.quicktype.io/
+
+export interface FetchAirPollution {
+  coord: Coord
+  list: List[]
+}
+
+export interface Coord {
+  lon: number
+  lat: number
+}
+
+export interface List {
+  main: Main
+  components: { [key: string]: number }
+  dt: number
+}
+
+export interface Main {
+  aqi: number
 }
