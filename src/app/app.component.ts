@@ -12,18 +12,25 @@ import {
   repeat,
   share,
   startWith,
+  switchMap,
   takeUntil,
   tap,
 } from 'rxjs'
 import { toLatLng, viewModel } from 'src/app/shared/utils'
+import {
+  WeatherService,
+  type LatLng,
+} from 'src/app/shared/services/weather.service'
+import { PeriodCardComponent } from 'src/app/shared/components/period-card.component'
+import { PeriodDetailsComponent } from './shared/components/period-details.component'
 
 @Component({
   selector: 'app-root',
   standalone: true,
   encapsulation: ViewEncapsulation.None,
-  imports: [CommonModule],
+  imports: [CommonModule, PeriodCardComponent, PeriodDetailsComponent],
   template: `
-    <ng-container *ngIf="vm$ | async as vm">
+    <main *ngIf="vm$ | async as vm">
       <label>State Capital</label>
       <select
         [disabled]="vm.capitals == null"
@@ -60,17 +67,82 @@ import { toLatLng, viewModel } from 'src/app/shared/utils'
       >
         Clear
       </button>
-    </ng-container>
+
+      <hr />
+      <div
+        class="progress-bar"
+        [style.display]="
+          vm.capitals == null || vm.periodsLoading ? 'block' : 'none'
+        "
+      >
+        <div></div>
+      </div>
+
+      <section *ngIf="vm.periods != null" id="weather">
+        <app-period-details [period]="vm.period" />
+
+        <ul class="periods">
+          <li
+            *ngFor="let period of vm.periods; let index = index"
+            [class.selected]="period.number === vm.period?.number"
+          >
+            <button
+              (click)="dispatch({
+              type: 'selectPeriod',
+              index,
+            })"
+            >
+              <app-period-card [period]="period" />
+            </button>
+          </li>
+        </ul>
+      </section>
+    </main>
   `,
   styles: [
     `
-      app-root > {
+      app-root > main > {
         label {
           display: block;
         }
 
         select {
           display: inline-block;
+        }
+
+        .progress-bar {
+          margin-top: -9px;
+        }
+
+        hr {
+          margin-top: 1rem;
+        }
+
+        #weather {
+          margin-top: 1rem;
+
+          .periods {
+            padding: 0;
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            grid-gap: 1rem;
+            justify-content: center;
+
+            li.selected button {
+              padding: 8px 0;
+              background-color: #efefef;
+            }
+
+            button {
+              margin: 0;
+              background: transparent;
+              padding: 0;
+              width: 100%;
+              border: none;
+              height: 100%;
+            }
+          }
         }
       }
     `,
@@ -80,6 +152,7 @@ export class AppComponent {
   readonly http = inject(HttpClient)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
+  readonly weather = inject(WeatherService)
 
   readonly actions = new Subject<Action>()
   readonly vm$
@@ -90,6 +163,42 @@ export class AppComponent {
     const latLng$ = this.route.queryParamMap.pipe(
       map((queryParams) => queryParams.get('latLng')),
       distinctUntilChanged()
+    )
+
+    const periods$ = latLng$.pipe(
+      switchMap((latLng) =>
+        latLng == null
+          ? of(null)
+          : this.weather
+              .fetchForecast(latLng)
+              .pipe(map((forecast) => forecast.properties.periods))
+      ),
+      share()
+    )
+
+    const periodsLoading$ = merge(
+      of(false),
+      latLng$.pipe(
+        filter(Boolean),
+        map(() => true)
+      ),
+      periods$.pipe(
+        filter(Boolean),
+        map(() => false)
+      )
+    )
+
+    const period$ = periods$.pipe(
+      switchMap((periods) => {
+        return periods && periods.length > 0
+          ? this.actions.pipe(
+              filter((a): a is SelectPeriodAction => a.type === 'selectPeriod'),
+              map((a) => periods[a.index]),
+              startWith(periods[0])
+            )
+          : of(null)
+      }),
+      startWith(null)
     )
 
     const effects$ = merge(
@@ -107,6 +216,9 @@ export class AppComponent {
     this.vm$ = viewModel({
       capitals$,
       latLng$,
+      periods$,
+      periodsLoading$,
+      period$,
       effects$,
     })
   }
@@ -143,14 +255,17 @@ export class AppComponent {
 
 // UI Interaction
 
-type LatLng = string
-
 export type SetCapitalAction = {
   type: 'setCapital'
   value: LatLng | null
 }
 
-export type Action = SetCapitalAction
+export type SelectPeriodAction = {
+  type: 'selectPeriod'
+  index: number
+}
+
+export type Action = SetCapitalAction | SelectPeriodAction
 
 // Types
 

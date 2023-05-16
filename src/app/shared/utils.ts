@@ -19,6 +19,6 @@ export const viewModel = <T extends Record<string, ObservableInput<any>>>(
   )
 }
 
-export const toLatLng = (coordsLike: { lon: number; lat: number }) => {
-  return [coordsLike.lon, coordsLike.lat].join(',')
+export const toLatLng = (coordsLike: { lat: number; lon: number }) => {
+  return [coordsLike.lat, coordsLike.lon].join(',')
 }
