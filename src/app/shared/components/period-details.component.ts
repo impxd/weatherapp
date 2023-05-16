@@ -45,7 +45,7 @@ import { type Period } from 'src/app/shared/services/weather.service'
             h1 {
               margin: 0;
               font-weight: 500;
-              letter-spacing: -4px;
+              letter-spacing: -3px;
               font-size: 3.5rem;
             }
 
@@ -64,8 +64,10 @@ import { type Period } from 'src/app/shared/services/weather.service'
             h4 {
               margin: 0;
             }
+
             p {
               margin: 0;
+              line-height: initial;
             }
           }
         }
