@@ -1,4 +1,9 @@
-import { Component, ViewEncapsulation, inject } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ViewEncapsulation,
+  inject,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -11,11 +16,9 @@ import {
   merge,
   of,
   partition,
-  repeat,
   share,
   startWith,
   switchMap,
-  takeUntil,
   tap,
 } from 'rxjs'
 import { toLatLng, viewModel } from 'src/app/shared/utils'
@@ -30,6 +33,7 @@ import { PeriodDetailsComponent } from './shared/components/period-details.compo
   selector: 'app-root',
   standalone: true,
   encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, PeriodCardComponent, PeriodDetailsComponent],
   template: `
     <main *ngIf="vm$ | async as vm">
