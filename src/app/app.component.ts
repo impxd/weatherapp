@@ -20,6 +20,7 @@ import {
   startWith,
   switchMap,
   tap,
+  timer,
 } from 'rxjs'
 import { toLatLng, viewModel } from 'src/app/shared/utils'
 import {
@@ -194,7 +195,11 @@ export class AppComponent {
     const capitals$ = this.fetchStateCapitals().pipe(startWith(null), share())
 
     const latLng$ = this.route.queryParamMap.pipe(
-      map((queryParams) => queryParams.get('latLng')),
+      switchMap((queryParams) =>
+        queryParams.get('latLng')
+          ? timer(300).pipe(map(() => queryParams.get('latLng')))
+          : of(null)
+      ),
       distinctUntilChanged()
     )
 
